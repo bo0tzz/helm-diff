@@ -196,7 +196,7 @@ func extractGitRef(ref, repoRoot string) (string, func(), error) {
 	}
 
 	cleanup := func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	archiveCmd := exec.Command(gitBinary(), "archive", ref)
@@ -239,7 +239,7 @@ func copyWorkingTree(repoRoot string) (string, func(), error) {
 	}
 
 	cleanup := func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	destDir := filepath.Join(tmpDir, filepath.Base(repoRoot))
@@ -283,13 +283,13 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	if _, err := io.Copy(out, in); err != nil {
 		return err
