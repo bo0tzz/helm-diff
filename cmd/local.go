@@ -9,31 +9,32 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/databus23/helm-diff/v3/diff"
 	"github.com/databus23/helm-diff/v3/manifest"
 )
 
-type local struct {
-	chart1             string
-	chart2             string
-	release            string
-	namespace          string
-	detailedExitCode   bool
-	includeTests       bool
-	includeCRDs        bool
-	normalizeManifests bool
-	enableDNS          bool
-	valueFiles         valueFiles
-	values             []string
-	stringValues       []string
-	stringLiteralValues []string
-	jsonValues         []string
-	fileValues         []string
-	postRenderer       string
-	postRendererArgs   []string
-	extraAPIs          []string
-	kubeVersion        string
+type Local struct {
+	Chart1              string
+	Chart2              string
+	Release             string
+	Namespace           string
+	DetailedExitCode    bool
+	IncludeTests        bool
+	IncludeCRDs         bool
+	NormalizeManifests  bool
+	EnableDNS           bool
+	ValueFiles          valueFiles
+	Values              []string
+	StringValues        []string
+	StringLiteralValues []string
+	JsonValues          []string
+	FileValues          []string
+	PostRenderer        string
+	PostRendererArgs    []string
+	ExtraAPIs           []string
+	KubeVersion         string
 	diff.Options
 }
 
@@ -50,8 +51,8 @@ This is useful for:
 `
 
 func localCmd() *cobra.Command {
-	diff := local{
-		release: "release",
+	diff := &Local{
+		Release: "release",
 	}
 
 	localCmd := &cobra.Command{
@@ -78,34 +79,18 @@ func localCmd() *cobra.Command {
 
 			ProcessDiffOptions(cmd.Flags(), &diff.Options)
 
-			diff.chart1 = args[0]
-			diff.chart2 = args[1]
+			diff.Chart1 = args[0]
+			diff.Chart2 = args[1]
 
-			if diff.namespace == "" {
-				diff.namespace = os.Getenv("HELM_NAMESPACE")
+			if diff.Namespace == "" {
+				diff.Namespace = os.Getenv("HELM_NAMESPACE")
 			}
 
-			return diff.run()
+			return diff.Run()
 		},
 	}
 
-	localCmd.Flags().StringVar(&diff.release, "release", "release", "release name to use for template rendering")
-	localCmd.Flags().StringVar(&diff.namespace, "namespace", "", "namespace to use for template rendering")
-	localCmd.Flags().BoolVar(&diff.detailedExitCode, "detailed-exitcode", false, "return a non-zero exit code when there are changes")
-	localCmd.Flags().BoolVar(&diff.includeTests, "include-tests", false, "enable the diffing of the helm test hooks")
-	localCmd.Flags().BoolVar(&diff.includeCRDs, "include-crds", false, "include CRDs in the diffing")
-	localCmd.Flags().BoolVar(&diff.normalizeManifests, "normalize-manifests", false, "normalize manifests before running diff to exclude style differences from the output")
-	localCmd.Flags().BoolVar(&diff.enableDNS, "enable-dns", false, "enable DNS lookups when rendering templates")
-	localCmd.Flags().VarP(&diff.valueFiles, "values", "f", "specify values in a YAML file (can specify multiple)")
-	localCmd.Flags().StringArrayVar(&diff.values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	localCmd.Flags().StringArrayVar(&diff.stringValues, "set-string", []string{}, "set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	localCmd.Flags().StringArrayVar(&diff.stringLiteralValues, "set-literal", []string{}, "set STRING literal values on the command line")
-	localCmd.Flags().StringArrayVar(&diff.jsonValues, "set-json", []string{}, "set JSON values on the command line (can specify multiple or separate values with commas: key1=jsonval1,key2=jsonval2)")
-	localCmd.Flags().StringArrayVar(&diff.fileValues, "set-file", []string{}, "set values from respective files specified via the command line (can specify multiple or separate values with commas: key1=path1,key2=path2)")
-	localCmd.Flags().StringVar(&diff.postRenderer, "post-renderer", "", "the path to an executable to be used for post rendering. If it exists in $PATH, the binary will be used, otherwise it will try to look for the executable at the given path")
-	localCmd.Flags().StringArrayVar(&diff.postRendererArgs, "post-renderer-args", []string{}, "an argument to the post-renderer (can specify multiple)")
-	localCmd.Flags().StringArrayVarP(&diff.extraAPIs, "api-versions", "a", []string{}, "Kubernetes api versions used for Capabilities.APIVersions")
-	localCmd.Flags().StringVar(&diff.kubeVersion, "kube-version", "", "Kubernetes version used for Capabilities.KubeVersion")
+	addChartRenderFlags(localCmd.Flags(), diff)
 
 	AddDiffOptions(localCmd.Flags(), &diff.Options)
 
@@ -114,28 +99,48 @@ func localCmd() *cobra.Command {
 	return localCmd
 }
 
-func (l *local) run() error {
-	manifest1, err := l.renderChart(l.chart1)
+func addChartRenderFlags(f *pflag.FlagSet, l *Local) {
+	f.StringVar(&l.Release, "release", "release", "release name to use for template rendering")
+	f.StringVar(&l.Namespace, "namespace", "", "namespace to use for template rendering")
+	f.BoolVar(&l.DetailedExitCode, "detailed-exitcode", false, "return a non-zero exit code when there are changes")
+	f.BoolVar(&l.IncludeTests, "include-tests", false, "enable the diffing of the helm test hooks")
+	f.BoolVar(&l.IncludeCRDs, "include-crds", false, "include CRDs in the diffing")
+	f.BoolVar(&l.NormalizeManifests, "normalize-manifests", false, "normalize manifests before running diff to exclude style differences from the output")
+	f.BoolVar(&l.EnableDNS, "enable-dns", false, "enable DNS lookups when rendering templates")
+	f.VarP(&l.ValueFiles, "values", "f", "specify values in a YAML file (can specify multiple)")
+	f.StringArrayVar(&l.Values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.StringArrayVar(&l.StringValues, "set-string", []string{}, "set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.StringArrayVar(&l.StringLiteralValues, "set-literal", []string{}, "set STRING literal values on the command line")
+	f.StringArrayVar(&l.JsonValues, "set-json", []string{}, "set JSON values on the command line (can specify multiple or separate values with commas: key1=jsonval1,key2=jsonval2)")
+	f.StringArrayVar(&l.FileValues, "set-file", []string{}, "set values from respective files specified via the command line (can specify multiple or separate values with commas: key1=path1,key2=path2)")
+	f.StringVar(&l.PostRenderer, "post-renderer", "", "the path to an executable to be used for post rendering. If it exists in $PATH, the binary will be used, otherwise it will try to look for the executable at the given path")
+	f.StringArrayVar(&l.PostRendererArgs, "post-renderer-args", []string{}, "an argument to the post-renderer (can specify multiple)")
+	f.StringArrayVarP(&l.ExtraAPIs, "api-versions", "a", []string{}, "Kubernetes api versions used for Capabilities.APIVersions")
+	f.StringVar(&l.KubeVersion, "kube-version", "", "Kubernetes version used for Capabilities.KubeVersion")
+}
+
+func (l *Local) Run() error {
+	manifest1, err := l.renderChart(l.Chart1)
 	if err != nil {
-		return fmt.Errorf("Failed to render chart %s: %w", l.chart1, err)
+		return fmt.Errorf("Failed to render chart %s: %w", l.Chart1, err)
 	}
 
-	manifest2, err := l.renderChart(l.chart2)
+	manifest2, err := l.renderChart(l.Chart2)
 	if err != nil {
-		return fmt.Errorf("Failed to render chart %s: %w", l.chart2, err)
+		return fmt.Errorf("Failed to render chart %s: %w", l.Chart2, err)
 	}
 
 	excludes := []string{manifest.Helm3TestHook, manifest.Helm2TestSuccessHook}
-	if l.includeTests {
+	if l.IncludeTests {
 		excludes = []string{}
 	}
 
-	specs1 := manifest.Parse(string(manifest1), l.namespace, l.normalizeManifests, excludes...)
-	specs2 := manifest.Parse(string(manifest2), l.namespace, l.normalizeManifests, excludes...)
+	specs1 := manifest.Parse(string(manifest1), l.Namespace, l.NormalizeManifests, excludes...)
+	specs2 := manifest.Parse(string(manifest2), l.Namespace, l.NormalizeManifests, excludes...)
 
 	seenAnyChanges := diff.Manifests(specs1, specs2, &l.Options, os.Stdout)
 
-	if l.detailedExitCode && seenAnyChanges {
+	if l.DetailedExitCode && seenAnyChanges {
 		return Error{
 			error: errors.New("identified at least one change, exiting with non-zero exit code (detailed-exitcode parameter enabled)"),
 			Code:  2,
@@ -145,26 +150,26 @@ func (l *local) run() error {
 	return nil
 }
 
-func (l *local) renderChart(chartPath string) ([]byte, error) {
+func (l *Local) renderChart(chartPath string) ([]byte, error) {
 	flags := []string{}
 
-	if l.includeCRDs {
+	if l.IncludeCRDs {
 		flags = append(flags, "--include-crds")
 	}
 
-	if l.namespace != "" {
-		flags = append(flags, "--namespace", l.namespace)
+	if l.Namespace != "" {
+		flags = append(flags, "--namespace", l.Namespace)
 	}
 
-	if l.postRenderer != "" {
-		flags = append(flags, "--post-renderer", l.postRenderer)
+	if l.PostRenderer != "" {
+		flags = append(flags, "--post-renderer", l.PostRenderer)
 	}
 
-	for _, arg := range l.postRendererArgs {
+	for _, arg := range l.PostRendererArgs {
 		flags = append(flags, "--post-renderer-args", arg)
 	}
 
-	for _, valueFile := range l.valueFiles {
+	for _, valueFile := range l.ValueFiles {
 		if strings.TrimSpace(valueFile) == "-" {
 			bytes, err := io.ReadAll(os.Stdin)
 			if err != nil {
@@ -194,41 +199,41 @@ func (l *local) renderChart(chartPath string) ([]byte, error) {
 		}
 	}
 
-	for _, value := range l.values {
+	for _, value := range l.Values {
 		flags = append(flags, "--set", value)
 	}
 
-	for _, stringValue := range l.stringValues {
+	for _, stringValue := range l.StringValues {
 		flags = append(flags, "--set-string", stringValue)
 	}
 
-	for _, stringLiteralValue := range l.stringLiteralValues {
+	for _, stringLiteralValue := range l.StringLiteralValues {
 		flags = append(flags, "--set-literal", stringLiteralValue)
 	}
 
-	for _, jsonValue := range l.jsonValues {
+	for _, jsonValue := range l.JsonValues {
 		flags = append(flags, "--set-json", jsonValue)
 	}
 
-	for _, fileValue := range l.fileValues {
+	for _, fileValue := range l.FileValues {
 		flags = append(flags, "--set-file", fileValue)
 	}
 
-	if l.enableDNS {
+	if l.EnableDNS {
 		flags = append(flags, "--enable-dns")
 	}
 
-	for _, a := range l.extraAPIs {
+	for _, a := range l.ExtraAPIs {
 		flags = append(flags, "--api-versions", a)
 	}
 
-	if l.kubeVersion != "" {
-		flags = append(flags, "--kube-version", l.kubeVersion)
+	if l.KubeVersion != "" {
+		flags = append(flags, "--kube-version", l.KubeVersion)
 	}
 
-	args := []string{"template", l.release, chartPath}
+	args := []string{"template", l.Release, chartPath}
 	args = append(args, flags...)
 
-	cmd := exec.Command(os.Getenv("HELM_BIN"), args...)
+	cmd := exec.Command(helmBinary(), args...)
 	return outputWithRichError(cmd)
 }

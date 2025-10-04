@@ -34,3 +34,17 @@ func outputWithRichError(cmd *exec.Cmd) ([]byte, error) {
 	}
 	return output, err
 }
+
+func helmBinary() string {
+	if bin := os.Getenv("HELM_BIN"); bin != "" {
+		return bin
+	}
+	return "helm"
+}
+
+func gitBinary() string {
+	if bin := os.Getenv("GIT_BIN"); bin != "" {
+		return bin
+	}
+	return "git"
+}
