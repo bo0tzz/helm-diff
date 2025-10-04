@@ -68,12 +68,18 @@ The Helm Diff Plugin
   want to rollback. This can be used to visualize what changes a
   helm rollback will perform.
 
+* Shows a diff between charts at different git references:
+    This extracts charts at specified git references (commits, tags, branches)
+  and compares them. This can be used to visualize changes between versions
+  in your git repository without modifying the working tree.
+
 Usage:
   diff [flags]
   diff [command]
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
+  git         Shows diff between git refs of a chart
   local       Shows diff between two local chart directories
   release     Shows diff between release's manifests
   revision    Shows diff between revision's manifests
@@ -134,6 +140,81 @@ Use "diff [command] --help" for more information about a command.
 ```
 
 ## Commands:
+
+### git:
+
+```
+$ helm diff git -h
+
+This command compares Helm charts at different git references without
+modifying the working tree.
+
+The chart path is relative to the git repository root, not the current
+working directory. This ensures consistency when comparing different refs.
+
+Chart dependencies are automatically built for each ref using 'helm dependency build'.
+
+When no refs are specified, the primary branch from the configured remote
+is compared against the working tree. The primary branch is detected using:
+  git symbolic-ref refs/remotes/<remote>/HEAD
+
+Examples:
+  # Compare primary branch vs working tree (chart at repo root)
+  helm diff git
+
+  # Compare specific ref vs working tree
+  helm diff git v1.0.0
+
+  # Compare two refs
+  helm diff git v1.0.0 v2.0.0
+
+  # Chart in subdirectory (path relative to repo root)
+  helm diff git --chart-path=charts/myapp main
+
+  # Use custom remote for primary branch detection
+  helm diff git --remote=upstream
+
+  # With values and diff options
+  helm diff git -f values.yaml --set replicas=3 --context=5 main
+
+Usage:
+  diff git [flags] [REF1] [REF2]
+
+Flags:
+  -a, --api-versions stringArray                 Kubernetes api versions used for Capabilities.APIVersions
+      --chart-path string                        path to chart relative to repository root (default ".")
+  -C, --context int                              output NUM lines of context around changes (default -1)
+      --detailed-exitcode                        return a non-zero exit code when there are changes
+      --enable-dns                               enable DNS lookups when rendering templates
+  -D, --find-renames float32                     Enable rename detection if set to any value greater than 0. If specified, the value denotes the maximum fraction of changed content as lines added + removed compared to total lines in a diff for considering it a rename. Only objects of the same Kind are attempted to be matched
+  -h, --help                                     help for git
+      --include-crds                             include CRDs in the diffing
+      --include-tests                            enable the diffing of the helm test hooks
+      --kube-version string                      Kubernetes version used for Capabilities.KubeVersion
+      --namespace string                         namespace to use for template rendering
+      --normalize-manifests                      normalize manifests before running diff to exclude style differences from the output
+      --output string                            Possible values: diff, simple, template, dyff. When set to "template", use the env var HELM_DIFF_TPL to specify the template. (default "diff")
+      --post-renderer string                     the path to an executable to be used for post rendering. If it exists in $PATH, the binary will be used, otherwise it will try to look for the executable at the given path
+      --post-renderer-args stringArray           an argument to the post-renderer (can specify multiple)
+      --release string                           release name to use for template rendering (default "release")
+      --remote string                            git remote to use for primary branch detection (default "origin")
+      --set stringArray                          set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)
+      --set-file stringArray                     set values from respective files specified via the command line (can specify multiple or separate values with commas: key1=path1,key2=path2)
+      --set-json stringArray                     set JSON values on the command line (can specify multiple or separate values with commas: key1=jsonval1,key2=jsonval2)
+      --set-literal stringArray                  set STRING literal values on the command line
+      --set-string stringArray                   set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)
+      --show-secrets                             do not redact secret values in the output
+      --show-secrets-decoded                     decode secret values in the output
+      --strip-trailing-cr                        strip trailing carriage return on input
+      --suppress stringArray                     allows suppression of the kinds listed in the diff output (can specify multiple, like '--suppress Deployment --suppress Service')
+      --suppress-output-line-regex stringArray   a regex to suppress diff output lines that match
+  -q, --suppress-secrets                         suppress secrets in the output
+  -f, --values valueFiles                        specify values in a YAML file (can specify multiple) (default [])
+
+Global Flags:
+      --color      color output. You can control the value for this flag via HELM_DIFF_COLOR=[true|false]. If both --no-color and --color are unspecified, coloring enabled only when the stdout is a term and TERM is not "dumb"
+      --no-color   remove colors from the output. If both --no-color and --color are unspecified, coloring enabled only when the stdout is a term and TERM is not "dumb"
+```
 
 ### local:
 
