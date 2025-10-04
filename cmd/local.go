@@ -29,7 +29,7 @@ type Local struct {
 	Values              []string
 	StringValues        []string
 	StringLiteralValues []string
-	JsonValues          []string
+	JSONValues          []string
 	FileValues          []string
 	PostRenderer        string
 	PostRendererArgs    []string
@@ -111,7 +111,7 @@ func addChartRenderFlags(f *pflag.FlagSet, l *Local) {
 	f.StringArrayVar(&l.Values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	f.StringArrayVar(&l.StringValues, "set-string", []string{}, "set STRING values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	f.StringArrayVar(&l.StringLiteralValues, "set-literal", []string{}, "set STRING literal values on the command line")
-	f.StringArrayVar(&l.JsonValues, "set-json", []string{}, "set JSON values on the command line (can specify multiple or separate values with commas: key1=jsonval1,key2=jsonval2)")
+	f.StringArrayVar(&l.JSONValues, "set-json", []string{}, "set JSON values on the command line (can specify multiple or separate values with commas: key1=jsonval1,key2=jsonval2)")
 	f.StringArrayVar(&l.FileValues, "set-file", []string{}, "set values from respective files specified via the command line (can specify multiple or separate values with commas: key1=path1,key2=path2)")
 	f.StringVar(&l.PostRenderer, "post-renderer", "", "the path to an executable to be used for post rendering. If it exists in $PATH, the binary will be used, otherwise it will try to look for the executable at the given path")
 	f.StringArrayVar(&l.PostRendererArgs, "post-renderer-args", []string{}, "an argument to the post-renderer (can specify multiple)")
@@ -211,7 +211,7 @@ func (l *Local) renderChart(chartPath string) ([]byte, error) {
 		flags = append(flags, "--set-literal", stringLiteralValue)
 	}
 
-	for _, jsonValue := range l.JsonValues {
+	for _, jsonValue := range l.JSONValues {
 		flags = append(flags, "--set-json", jsonValue)
 	}
 
